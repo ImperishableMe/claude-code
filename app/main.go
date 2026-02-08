@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -79,6 +80,32 @@ func main() {
 		panic("No choices in response")
 	}
 
+	switch resp.Choices[0].FinishReason {
+	case "tool_calls":
+		// assume at least one tool call
+		toolCall := resp.Choices[0].Message.ToolCalls[0]
+		functionName := toolCall.Function.Name
+		if functionName == "Read" {
+			fmt.Fprintln(os.Stderr, "Tool call read")
+			var arguments map[string]string
+			err = json.Unmarshal([]byte(toolCall.Function.Arguments), &arguments)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Fprintf(os.Stderr, "filename is %v\n", arguments["file_path"])
+			content, err := os.ReadFile(arguments["file_path"])
+			if err != nil {
+				panic(err)
+			}
+			fmt.Fprintf(os.Stderr, "content is %v\n", string(content))
+			fmt.Print(content)
+
+		} else {
+			fmt.Printf("unknown tool call: %v\n", functionName)
+		}
+	default:
+		break
+	}
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
 
