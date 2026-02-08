@@ -8,6 +8,7 @@ import (
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/packages/param"
 )
 
 func main() {
@@ -30,9 +31,11 @@ func main() {
 	}
 
 	client := openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseUrl))
-	resp, err := client.Chat.Completions.New(context.Background(),
+	resp, err := client.Chat.Completions.New(
+		context.Background(),
 		openai.ChatCompletionNewParams{
-			Model: "anthropic/claude-haiku-4.5",
+			//Model: "anthropic/claude-haiku-4.5",
+			Model: "openrouter/free",
 			Messages: []openai.ChatCompletionMessageParamUnion{
 				{
 					OfUser: &openai.ChatCompletionUserMessageParam{
@@ -41,6 +44,24 @@ func main() {
 						},
 					},
 				},
+			},
+			Tools: []openai.ChatCompletionToolUnionParam{
+				openai.ChatCompletionFunctionTool(
+					openai.FunctionDefinitionParam{
+						Name:        "Read",
+						Strict:      param.Opt[bool]{},
+						Description: param.Opt[string]{Value: "Read and return the contents of a file"},
+						Parameters: openai.FunctionParameters{
+							"type": "object",
+							"properties": map[string]any{
+								"file_path": map[string]any{
+									"type":        "string",
+									"description": "The path to the file to read",
+								},
+							},
+							"required": []string{"file_path"},
+						},
+					}),
 			},
 		},
 	)
