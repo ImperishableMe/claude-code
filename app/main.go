@@ -22,6 +22,8 @@ func main() {
 
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	baseUrl := os.Getenv("OPENROUTER_BASE_URL")
+	baseModel := os.Getenv("OPENROUTER_BASE_MODEL") // use `openrouter/free` locally
+
 	if baseUrl == "" {
 		baseUrl = "https://openrouter.ai/api/v1"
 	}
@@ -30,12 +32,16 @@ func main() {
 		panic("Env variable OPENROUTER_API_KEY not found")
 	}
 
+	if baseModel == "" {
+		baseModel = "anthropic/claude-haiku-4.5"
+	}
+
 	client := openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseUrl))
 	resp, err := client.Chat.Completions.New(
 		context.Background(),
 		openai.ChatCompletionNewParams{
 			//Model: "anthropic/claude-haiku-4.5",
-			Model: "openrouter/free",
+			Model: baseModel,
 			Messages: []openai.ChatCompletionMessageParamUnion{
 				{
 					OfUser: &openai.ChatCompletionUserMessageParam{
