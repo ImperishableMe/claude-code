@@ -12,7 +12,7 @@ import (
 	"github.com/openai/openai-go/v3/packages/param"
 )
 
-func setup_client() openai.Client {
+func setupClient() openai.Client {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	baseUrl := os.Getenv("OPENROUTER_BASE_URL")
 
@@ -27,11 +27,7 @@ func setup_client() openai.Client {
 	return openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseUrl))
 }
 
-func run(prompt string, client openai.Client) error {
-	baseModel := os.Getenv("OPENROUTER_BASE_MODEL") // use `openrouter/free` locally
-	if baseModel == "" {
-		baseModel = "anthropic/claude-haiku-4.5"
-	}
+func run(client openai.Client, prompt string, baseModel string) {
 	tools := []openai.ChatCompletionToolUnionParam{
 		openai.ChatCompletionFunctionTool(
 			openai.FunctionDefinitionParam{
@@ -54,13 +50,12 @@ func run(prompt string, client openai.Client) error {
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.UserMessage(prompt),
 	}
-
-	for {
+	const MaxIterations = 10
+	for i := 0; i < MaxIterations; i++ {
 		fmt.Fprintf(os.Stderr, "Sending LLM %d messages\n", len(messages))
 		resp, err := client.Chat.Completions.New(
 			context.Background(),
 			openai.ChatCompletionNewParams{
-				//Model: "anthropic/claude-haiku-4.5",
 				Model:    baseModel,
 				Tools:    tools,
 				Messages: messages,
@@ -93,7 +88,7 @@ func run(prompt string, client openai.Client) error {
 
 				if functionName == "Read" {
 					var arguments map[string]string
-					err = json.Unmarshal([]byte(toolCalls[0].Function.Arguments), &arguments)
+					err = json.Unmarshal([]byte(toolCall.Function.Arguments), &arguments)
 					if err != nil {
 						fmt.Fprintln(os.Stderr, "error: parsing failed for Read tool_call arguments")
 						panic(err)
@@ -118,7 +113,7 @@ func run(prompt string, client openai.Client) error {
 			}
 		} else {
 			fmt.Println(resp.Choices[0].Message.Content)
-			return nil
+			return
 		}
 	}
 }
@@ -127,12 +122,16 @@ func main() {
 	var prompt string
 	flag.StringVar(&prompt, "p", "", "Prompt to send to LLM")
 	flag.Parse()
-
 	if prompt == "" {
 		panic("Prompt must not be empty")
 	}
-	client := setup_client()
-	if err := run(prompt, client); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+
+	baseModel := os.Getenv("OPENROUTER_BASE_MODEL") // use `openrouter/free` locally
+	if baseModel == "" {
+		baseModel = "anthropic/claude-haiku-4.5"
 	}
+
+	client := setupClient()
+
+	run(client, prompt, baseModel)
 }
