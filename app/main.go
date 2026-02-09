@@ -106,7 +106,7 @@ func run(prompt string, client openai.Client) error {
 						os.Exit(1)
 					}
 					messages = append(messages, openai.ToolMessage(string(content), toolCall.ID))
-					fmt.Print(string(content))
+					// fmt.Print(string(content))
 
 				} else {
 					fmt.Printf("unknown tool call: %v\n", functionName)
