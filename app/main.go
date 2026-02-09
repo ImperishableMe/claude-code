@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -49,7 +50,7 @@ func run(client openai.Client, prompt string, baseModel string) {
 			openai.FunctionDefinitionParam{
 				Name:        "Write",
 				Strict:      param.Opt[bool]{},
-				Description: param.Opt[string]{Value: "write the contents to a file"},
+				Description: param.Opt[string]{Value: "Write the contents to a file"},
 				Parameters: openai.FunctionParameters{
 					"type": "object",
 					"properties": map[string]any{
@@ -59,10 +60,26 @@ func run(client openai.Client, prompt string, baseModel string) {
 						},
 						"content": map[string]any{
 							"type":        "string",
-							"description": "content of the file to write",
+							"description": "The content of the file to write",
 						},
 					},
 					"required": []string{"file_path", "content"},
+				},
+			}),
+		openai.ChatCompletionFunctionTool(
+			openai.FunctionDefinitionParam{
+				Name:        "Bash",
+				Strict:      param.Opt[bool]{},
+				Description: param.Opt[string]{Value: "Execute a shell command"},
+				Parameters: openai.FunctionParameters{
+					"type": "object",
+					"properties": map[string]any{
+						"command": map[string]any{
+							"type":        "string",
+							"description": "The command to execute",
+						},
+					},
+					"required": []string{"command"},
 				},
 			}),
 	}
@@ -141,7 +158,23 @@ func run(client openai.Client, prompt string, baseModel string) {
 					} else {
 						messages = append(messages, openai.ToolMessage("wrote the content successfully", toolCall.ID))
 					}
+				} else if functionName == "Bash" {
+					var arguments map[string]string
+					err = json.Unmarshal([]byte(toolCall.Function.Arguments), &arguments)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "error: parsing failed for bash tool_call arguments")
+						panic(err)
+					}
+					command := arguments["command"]
+					fmt.Fprintf(os.Stderr, "tool_call: Bash, command: %v\n", command)
 
+					out, err := exec.Command("sh", "-c", command).CombinedOutput()
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "error: ", err)
+						messages = append(messages, openai.ToolMessage(err.Error(), toolCall.ID))
+					} else {
+						messages = append(messages, openai.ToolMessage(string(out), toolCall.ID))
+					}
 				} else {
 					fmt.Printf("unknown tool call: %v\n", functionName)
 					messages = append(
