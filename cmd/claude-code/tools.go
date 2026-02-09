@@ -57,8 +57,7 @@ func (r ReadTool) Execute(args json.RawMessage) (output string, err error) {
 	var arguments map[string]string
 	err = json.Unmarshal(args, &arguments)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error: parsing failed for Read tool_call arguments")
-		panic(err)
+		return "", fmt.Errorf("parsing failed for Read tool_call arguments: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "tool_call: Read, file_path: %v\n", arguments["file_path"])
 	content, err := os.ReadFile(arguments["file_path"])
@@ -98,8 +97,7 @@ func (w WriteTool) Execute(args json.RawMessage) (output string, err error) {
 	var arguments map[string]string
 	err = json.Unmarshal([]byte(args), &arguments)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error: parsing failed for write tool_call arguments")
-		panic(err)
+		return "", fmt.Errorf("parsing failed for Write tool_call arguments: %w", err)
 	}
 	path := arguments["file_path"]
 	content := arguments["content"]
@@ -138,8 +136,7 @@ func (b BashTool) Execute(args json.RawMessage) (output string, err error) {
 	var arguments map[string]string
 	err = json.Unmarshal(args, &arguments)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error: parsing failed for bash tool_call arguments")
-		panic(err)
+		return "", fmt.Errorf("parsing failed for Bash tool_call arguments: %w", err)
 	}
 	command := arguments["command"]
 	fmt.Fprintf(os.Stderr, "tool_call: Bash, command: %v\n", command)

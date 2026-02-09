@@ -1,4 +1,4 @@
-module github.com/codecrafters-io/claude-code-starter-go
+module github.com/ImperishableMe/claude-code
 
 go 1.25
 
