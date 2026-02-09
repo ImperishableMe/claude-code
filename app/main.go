@@ -45,6 +45,26 @@ func run(client openai.Client, prompt string, baseModel string) {
 					"required": []string{"file_path"},
 				},
 			}),
+		openai.ChatCompletionFunctionTool(
+			openai.FunctionDefinitionParam{
+				Name:        "Write",
+				Strict:      param.Opt[bool]{},
+				Description: param.Opt[string]{Value: "write the contents to a file"},
+				Parameters: openai.FunctionParameters{
+					"type": "object",
+					"properties": map[string]any{
+						"file_path": map[string]any{
+							"type":        "string",
+							"description": "The path to which the file to write",
+						},
+						"content": map[string]any{
+							"type":        "string",
+							"description": "content of the file to write",
+						},
+					},
+					"required": []string{"file_path", "content"},
+				},
+			}),
 	}
 
 	messages := []openai.ChatCompletionMessageParamUnion{
@@ -93,7 +113,7 @@ func run(client openai.Client, prompt string, baseModel string) {
 						fmt.Fprintln(os.Stderr, "error: parsing failed for Read tool_call arguments")
 						panic(err)
 					}
-					fmt.Fprintf(os.Stderr, "tool_call: Read, file_name: %v\n", arguments["file_path"])
+					fmt.Fprintf(os.Stderr, "tool_call: Read, file_path: %v\n", arguments["file_path"])
 
 					content, err := os.ReadFile(arguments["file_path"])
 					if err != nil {
@@ -102,6 +122,25 @@ func run(client openai.Client, prompt string, baseModel string) {
 					}
 					messages = append(messages, openai.ToolMessage(string(content), toolCall.ID))
 					// fmt.Print(string(content))
+
+				} else if functionName == "Write" {
+					var arguments map[string]string
+					err = json.Unmarshal([]byte(toolCall.Function.Arguments), &arguments)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "error: parsing failed for write tool_call arguments")
+						panic(err)
+					}
+					path := arguments["file_path"]
+					content := arguments["content"]
+					fmt.Fprintf(os.Stderr, "tool_call: Write, file_path: %v, content: %v\n", path, content)
+
+					err := os.WriteFile(path, []byte(content), 0644)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "error: ", err)
+						messages = append(messages, openai.ToolMessage(err.Error(), toolCall.ID))
+					} else {
+						messages = append(messages, openai.ToolMessage("wrote the content successfully", toolCall.ID))
+					}
 
 				} else {
 					fmt.Printf("unknown tool call: %v\n", functionName)
