@@ -1,34 +1,60 @@
-[![progress-banner](https://backend.codecrafters.io/progress/claude-code/42350bc9-9419-4659-844e-3c2358f042da)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# Claude Code (Go)
 
-This is a starting point for Go solutions to the
-["Build Your own Claude Code" Challenge](https://codecrafters.io/challenges/claude-code).
+A minimal Claude Code clone built in Go — an LLM-powered coding assistant that reads files, writes files, and executes shell commands through an agentic tool-calling loop. Built as a [CodeCrafters "Build Your Own Claude Code"](https://codecrafters.io/challenges/claude-code) challenge solution.
 
-Claude Code is an AI coding assistant that uses Large Language Models (LLMs) to
-understand code and perform actions through tool calls. In this challenge,
-you'll build your own Claude Code from scratch by implementing an LLM-powered
-coding assistant.
+## Architecture
 
-Along the way you'll learn about HTTP RESTful APIs, OpenAI-compatible tool
-calling, agent loop, and how to integrate multiple tools into an AI assistant.
+The agent follows a standard LLM tool-calling loop:
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
-
-# Passing the first stage
-
-The entry point for your `claude-code` implementation is in `app/main.go`. Study
-and uncomment the relevant code, and submit to pass the first stage:
-
-```sh
-codecrafters submit
+```
+Prompt → LLM → Tool Calls → Execute Tools → Feed Results Back → LLM → ... → Final Response
 ```
 
-# Stage 2 & beyond
+1. User prompt is sent to the LLM along with tool definitions
+2. The LLM responds with either a final message or tool calls
+3. Tool calls are executed locally and results are appended to the conversation
+4. The loop repeats (up to 10 iterations) until the LLM produces a final response
 
-Note: This section is for stages 2 and beyond.
+All tools implement a common `Tool` interface with `Name()`, `Definition()`, and `Execute()` methods, registered in a simple map-based dispatch table.
 
-1. Ensure you have `go (1.25)` installed locally.
-2. Run `./your_program.sh` to run your program, which is implemented in
-   `app/main.go`.
-3. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
-   output will be streamed to your terminal.
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| **Read** | Reads file contents from disk (`os.ReadFile`) |
+| **Write** | Writes content to a file with `0644` permissions |
+| **Bash** | Executes shell commands via `sh -c` and returns combined stdout/stderr |
+
+## Prerequisites
+
+- Go 1.25
+- An [OpenRouter](https://openrouter.ai) API key
+
+## Usage
+
+```sh
+# Build
+go build -o claude-code app/*.go
+
+# Run
+./claude-code -p "your prompt here"
+
+# Or use the wrapper script
+./your_program.sh -p "your prompt here"
+```
+
+## Configuration
+
+| Environment Variable | Required | Default | Description |
+|---------------------|----------|---------|-------------|
+| `OPENROUTER_API_KEY` | Yes | — | OpenRouter API key for authentication |
+| `OPENROUTER_BASE_URL` | No | `https://openrouter.ai/api/v1` | API base URL |
+| `OPENROUTER_BASE_MODEL` | No | `anthropic/claude-haiku-4.5` | Model to use for completions |
+
+## Project Structure
+
+```
+app/
+├── main.go    # Entry point, agent loop, OpenRouter client setup
+└── tools.go   # Tool interface and implementations (Read, Write, Bash)
+```
