@@ -24,7 +24,6 @@ type Tool interface {
 	// The tool with args given as json string
 	// Each tool might interpret arguments differently,
 	// hence the generic argument.
-	//
 	Execute(args json.RawMessage) (output string, err error)
 }
 

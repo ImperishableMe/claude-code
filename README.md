@@ -2,6 +2,32 @@
 
 A minimal Claude Code clone built in Go — an LLM-powered coding assistant that reads files, writes files, and executes shell commands through an agentic tool-calling loop. Built as a [CodeCrafters "Build Your Own Claude Code"](https://codecrafters.io/challenges/claude-code) challenge solution.
 
+## Installation
+
+```sh
+go install github.com/ImperishableMe/claude-code/cmd/claude-code@latest
+```
+
+Make sure `$GOPATH/bin` is in your `PATH`:
+
+```sh
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+## Usage
+
+```sh
+# Set your API key
+export OPENROUTER_API_KEY="your-api-key"
+
+# Run with a prompt
+claude-code -p "your prompt here"
+claude-code --prompt "your prompt here"
+
+# Show help
+claude-code --help
+```
+
 ## Architecture
 
 The agent follows a standard LLM tool-calling loop:
@@ -27,21 +53,8 @@ All tools implement a common `Tool` interface with `Name()`, `Definition()`, and
 
 ## Prerequisites
 
-- Go 1.25
+- Go 1.25+
 - An [OpenRouter](https://openrouter.ai) API key
-
-## Usage
-
-```sh
-# Build
-go build -o claude-code app/*.go
-
-# Run
-./claude-code -p "your prompt here"
-
-# Or use the wrapper script
-./your_program.sh -p "your prompt here"
-```
 
 ## Configuration
 
@@ -51,10 +64,23 @@ go build -o claude-code app/*.go
 | `OPENROUTER_BASE_URL` | No | `https://openrouter.ai/api/v1` | API base URL |
 | `OPENROUTER_BASE_MODEL` | No | `anthropic/claude-haiku-4.5` | Model to use for completions |
 
+## Development
+
+```sh
+# Build locally
+go build -o claude-code ./cmd/claude-code/
+
+# Run locally
+./claude-code -p "your prompt here"
+
+# Or use the wrapper script
+./your_program.sh -p "your prompt here"
+```
+
 ## Project Structure
 
 ```
-app/
+cmd/claude-code/
 ├── main.go    # Entry point, agent loop, OpenRouter client setup
 └── tools.go   # Tool interface and implementations (Read, Write, Bash)
 ```
